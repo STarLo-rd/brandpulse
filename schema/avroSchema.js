@@ -6,7 +6,7 @@ const dataSchema = avro.parse({
   fields: [
     { name: "id", type: "int" },
     { name: "timestamp", type: "string" },
-    { name: "value", type: "float" }
+    { name: "value", type: "double" }
   ]
 });
 

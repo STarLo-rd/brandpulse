@@ -19,7 +19,9 @@ const kafkaConfig = {
 
 // Batch configuration
 const BATCH_SIZE = 20000;
-const BATCH_INTERVAL_MS = 100; // 100ms cooldown between batches
+// const BATCH_INTERVAL_MS = 100; // 100ms cooldown between batches
+const BATCH_INTERVAL_MS = 10; // aggresive pacing
+
 
 // Serialization cache
 const recordCache = new Array(BATCH_SIZE).fill(null); // Pre-allocate array
@@ -79,7 +81,7 @@ if (!isMainThread) {
 // Main Thread
 if (isMainThread) {
   const WORKER_COUNT = require('os').cpus().length; // Dynamic worker count
-  const workers = new Set();
+   const workers = new Set();
 
   console.log(`Main process started. Spawning ${WORKER_COUNT} workers`);
 
