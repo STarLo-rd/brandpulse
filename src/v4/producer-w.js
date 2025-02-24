@@ -10,24 +10,28 @@ const dataSchema = require("../../schema/avroSchema");
 // 1. Kafka Configuration
 const kafkaConfig = {
   clientId: `producer-${process.pid}-${threadId}`,
-  brokers: ['localhost:9092',"127.0.0.1:9093"],
-  // brokers: ["127.0.0.1:9092", "127.0.0.1:9093", "127.0.0.1:9094"],
+  brokers: ['localhost:9092','localhost:9093','localhost:9094','localhost:9095'],
   retry: { retries: 2 },
   producer: {
     // compression: CompressionTypes.LZ4, // 30% faster than Snappy
-    compression: CompressionTypes.ZSTD, // Better than LZ4
-    maxInFlightRequests: 25, // Parallel requests
+    // compression: CompressionTypes.ZSTD, // Better than LZ4
+    compression: CompressionTypes.LZ4, // ZSTD too slow for Node.js
+    maxInFlightRequests: 200, // Parallel requests
     idempotent: true,
     // batchSize: 1024 * 1024, // 1MB batches
-    batchSize: 2 * 1024 * 1024, // 2MB batches
+    // batchSize: 8 * 1024 * 1024, // 8MB batches
+    batchSize: 16 * 1024 * 1024, // 16MB batches for higher throughput
     // lingerMs: 150, // From 100ms
-    lingerMs: 200,
-    bufferMemory: 2 * 1024 * 1024 * 1024, // 2GB
+    lingerMs: 50,
+    // bufferMemory: 2 * 1024 * 1024 * 1024, // 2GB
+    bufferMemory: 4 * 1024 * 1024 * 1024,  // 4GB
+    acks: 1 // Faster than all replicas
   },
 };
 
 // 2. Pre-Generated Data (Critical Optimization)
 const BATCH_SIZE = 100000; // 150k per batch
+// const BATCH_SIZE = 250000; // Increased from 100K
 
 // Alternative: Single timestamp for entire pre-generated batch
 const BATCH_TIMESTAMP = new Date().toISOString();
@@ -80,7 +84,8 @@ if (!isMainThread) {
 
 // Main Thread
 if (isMainThread) {
-  const WORKER_COUNT = 4; // CPU cores × 2 (for hyperthreading)
+  // const WORKER_COUNT = 4; // CPU cores × 2 (for hyperthreading)
+  const WORKER_COUNT = require('os').cpus().length; 
   const workers = new Set();
 
   console.log(
