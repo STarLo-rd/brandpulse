@@ -10,8 +10,8 @@ const dataSchema = require("../../schema/avroSchema");
 // 1. Kafka Configuration
 const kafkaConfig = {
   clientId: `producer-${process.pid}-${threadId}`,
-//   brokers: ['localhost:9092', 'localhost:9093', 'localhost:9094'],
-brokers: ['127.0.0.1:9092', '127.0.0.1:9093', '127.0.0.1:9094'],
+  brokers: ['localhost:9092',"127.0.0.1:9093"],
+  // brokers: ["127.0.0.1:9092", "127.0.0.1:9093", "127.0.0.1:9094"],
   retry: { retries: 2 },
   producer: {
     // compression: CompressionTypes.LZ4, // 30% faster than Snappy
@@ -22,7 +22,7 @@ brokers: ['127.0.0.1:9092', '127.0.0.1:9093', '127.0.0.1:9094'],
     batchSize: 2 * 1024 * 1024, // 2MB batches
     // lingerMs: 150, // From 100ms
     lingerMs: 200,
-    bufferMemory: 2 * 1024 * 1024 * 1024 // 2GB
+    bufferMemory: 2 * 1024 * 1024 * 1024, // 2GB
   },
 };
 
