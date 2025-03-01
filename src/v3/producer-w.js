@@ -5,14 +5,13 @@ const dataSchema = require('../../schema/avroSchema');
 // Shared Kafka configuration
 const kafkaConfig = {
   clientId: `dataStorm-producer-${process.pid}-${threadId}`, // Unique client IDs
-  brokers: ['localhost:9092', 'localhost:9093', 'localhost:9094'],
+  brokers: ['localhost:9092'],
   retry: {
-    retries: 3 // Add retry mechanism
+    retries: 2 // Add retry mechanism
   },
   producer: {
     transactionTimeout: 30000,
-    compression: CompressionTypes.Snappy, // Compression type
-    maxInFlightRequests: 5, // Parallel requests
+    compression: CompressionTypes.LZ4,    maxInFlightRequests: 100, // Parallel requests
     idempotent: true, // Ensure exactly-once semantics
   }
 };
@@ -44,9 +43,10 @@ if (!isMainThread) {
   const producer = new Kafka(kafkaConfig).producer({
     createPartitioner: Partitioners.LegacyPartitioner,
     allowAutoTopicCreation: false,
-    batchSize: 16384 * 4,    // 64KB → 256KB batches
-    lingerMs: 5,             // Wait up to 5ms for batching
-    bufferMemory: 512 * 1024 * 1024, // 512MB buffer
+    batchSize: 16 * 1024 * 1024, // 16MB batches for higher throughput
+    lingerMs: 50,
+    bufferMemory: 4 * 1024 * 1024 * 1024,  // 4GB
+    acks: 1 // Faster than all replicas
   });
 
   const runProducer = async () => {
