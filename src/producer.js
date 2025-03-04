@@ -8,6 +8,9 @@ const {
 const tweetSchema = require("./schema/tweetSchema");
 const os = require("os");
 
+// Explicitly set environment variable to silence partitioner warning
+process.env.KAFKAJS_NO_PARTITIONER_WARNING = '1';
+
 // Shared Kafka configuration
 const kafkaConfig = {
   clientId: `dataStorm-producer-${process.pid}-${threadId}`, // Unique client IDs
@@ -29,12 +32,12 @@ const kafkaConfig = {
     idempotent: false, // No idempotence checks for performance
     allowAutoTopicCreation: false,
     batchSize: 32 * 1024 * 1024,
-    lingerMs: 2, // No linger time
+    lingerMs: 1, // No linger time
     acks: 0, // Fire and forget mode
     // bufferMemory: Math.min(6 * 1024 * 1024 * 1024, Math.floor(os.totalmem() * 0.7)) // Aggressive memory usage
     bufferMemory: Math.min(
       8 * 1024 * 1024 * 1024,
-      Math.floor(os.totalmem() * 0.8)
+      Math.floor(os.totalmem() * 0.9)
     ), // More aggressive memory
     socketTimeout: 60000, // Longer socket timeout
     connectionTimeout: 30000, // Longer connection timeout
@@ -42,9 +45,9 @@ const kafkaConfig = {
 };
 
 // Batch configuration
-const BATCH_SIZE = 10000;
+const BATCH_SIZE = 8000;
 // const BATCH_INTERVAL_MS = 100; // 100ms cooldown between batches
-const BATCH_INTERVAL_MS = 5; // aggresive pacing
+const BATCH_INTERVAL_MS = 1; // aggresive pacing
 
 // Serialization cache
 const recordCache = new Array(BATCH_SIZE).fill(null); // Pre-allocate array
@@ -60,34 +63,26 @@ const tweetTexts = [
   // Add more for variety if needed
 ];
 
-// Optimized batch generation
+const preSerializedTweets = tweetTexts.map(({ text, sentiment }) => ({
+  value: tweetSchema.toBuffer({
+    tweetId: crypto.randomUUID(),
+    timestamp: Date.now(),
+    text,
+    brand: "SuperCoffee",
+    sentiment,
+  })
+}));
+
 const generateBatch = () => {
-  const now = Date.now(); // Single timestamp per batch
-  return recordCache.map(() => {
-    const { text, sentiment } =
-      tweetTexts[Math.floor(Math.random() * tweetTexts.length)];
-    const tweet = {
-      tweetId: crypto.randomUUID(), // Unique ID
-      timestamp: now,
-      text: text,
-      brand: "SuperCoffee",
-      sentiment: sentiment,
-    };
-    return { value: tweetSchema.toBuffer(tweet) };
+  return Array(BATCH_SIZE).fill(null).map(() => {
+    const { value } = preSerializedTweets[Math.floor(Math.random() * preSerializedTweets.length)];
+    return { value: Buffer.from(value) };
   });
 };
 
 // Worker Logic
 if (!isMainThread) {
-  const producer = new Kafka(kafkaConfig).producer({
-    // createPartitioner: Partitioners.LegacyPartitioner,
-    // allowAutoTopicCreation: false,
-    // batchSize: 16 * 1024 * 1024, // 16MB batches for higher throughput
-    // lingerMs: 50,
-    // // bufferMemory: 4 * 1024 * 1024 * 1024,  // 4GB
-    // bufferMemory: Math.min(6 * 1024 * 1024 * 1024, Math.floor(os.totalmem() * 0.7)), // Aggressive memory usage
-    // acks: 0,
-  });
+  const producer = new Kafka(kafkaConfig).producer();
 
   const runProducer = async () => {
     await producer.connect();
@@ -121,7 +116,7 @@ if (!isMainThread) {
 // Main Thread
 if (isMainThread) {
   // const WORKER_COUNT = require('os').cpus().length; // Dynamic worker count
-  const WORKER_COUNT = Math.max(4, os.cpus().length * 3);
+  const WORKER_COUNT = Math.max(4, os.cpus().length * 2);
 
   const workers = new Set();
 
