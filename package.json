@@ -13,6 +13,7 @@
     "avro-js": "^1.12.0",
     "chalk": "^5.4.1",
     "datastorm": "file:",
+    "dotenv": "^16.4.7",
     "fast-json-stringify": "^6.0.1",
     "kafkajs": "^2.2.4"
   }

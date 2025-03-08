@@ -99,7 +99,7 @@ Consumer (consumer.js):
     Each tweet is written to InfluxDB as a point in the "tweets" measurement, with tags for brand ("SuperCoffee") and sentiment (positive, negative, or neutral), and fields including "text" (truncated to 255 characters) and "count" set to 1.
     Points are buffered and flushed to InfluxDB in batches of 5,000 points or every 5 seconds, whichever comes first, with options for retrying failed writes.
 
-    
+
 
 producer.js uses Kafka to send fake tweets with sentiment to a "tweets" topic, running in multiple worker threads.
 consumer.js reads these tweets, decodes them, and writes data to InfluxDB, also using multiple worker threads.
@@ -119,12 +119,16 @@ All 8000 tweets in a batch have the same timestamp, so they fall into the same s
 
 vs 
 
-from(bucket: "brandpulse")
-  |> range(start: -1h)
-  |> filter(fn: (r) => r._measurement == "tweets")
-  |> filter(fn: (r) => r._field == "count")
-  |> aggregateWindow(every: 1s, fn: sum)
-  |> group(columns: ["sentiment"])
+    from(bucket: "brandpulse")
+    |> range(start: -1h)
+    |> filter(fn: (r) => r._measurement == "tweets")
+    |> filter(fn: (r) => r._field == "count")
+    |> aggregateWindow(every: 1s, fn: sum)
+    |> group(columns: ["sentiment"])
+
+This query fetches data from the "brandpulse" bucket for the last hour, filters for the "tweets" measurement and "count" field, aggregates the sum of "count" per second, and groups by sentiment.
+Given each tweet has "count" = 1, the sum per second for each sentiment represents the number of tweets with that sentiment in that second.
+With batches of 8,000 tweets generated every 1ms and potentially multiple batches per second (due to multiple workers and fast generation), the sums per second can be very large, explaining the user's observation of "tons of data."
 
 
 problem faced-
@@ -164,3 +168,18 @@ With 4 workers, each generating 8000 tweets every 1ms, that's 32,000,000 tweets 
 
 
 
+
+
+support two distinct modes for sentiment distribution in the tweet generation:
+
+Fixed Values: The user can specify exact percentages for positive, negative, and neutral sentiments (e.g., 50% positive, 30% negative, 20% neutral), and the distribution strictly adheres to those values.
+High Volatility Random: A mode where sentiment distribution is more random and fluctuates significantly, introducing high variability (e.g., one batch might be 80% positive, the next 10% positive, etc.).
+
+Two Modes:
+Fixed Mode: Uses userSentimentDistribution to enforce exact percentages across the entire tweet pool. The distribution remains consistent for all batches.
+Volatile Mode: Introduces adjustBatchSentiment, which regenerates sentiment per batch with high variability. The volatilityFactor (set to 0.8) controls how extreme the swings are (closer to 1 = more volatile).
+
+Mode Selection:
+Added a MODE constant in index.js to switch between "fixed" and "volatile".
+In fixed mode, generateTweetPool respects the user’s percentages.
+In volatile mode, adjustBatchSentiment overrides the base pool’s sentiment distribution for each batch.
