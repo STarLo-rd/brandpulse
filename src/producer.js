@@ -54,11 +54,11 @@ const recordCache = new Array(BATCH_SIZE).fill(null); // Pre-allocate array
 
 // Predefined tweets with sentiment for efficiency
 const tweetTexts = [
-  { text: "I love SuperCoffee!", sentiment: "positive" },
-  { text: "SuperCoffee is awful", sentiment: "negative" },
+  // { text: "I love SuperCoffee!", sentiment: "positive" },
+  // { text: "SuperCoffee is awful", sentiment: "negative" },
   { text: "Just drank some SuperCoffee", sentiment: "neutral" },
   { text: "SuperCoffee is the best!", sentiment: "positive" },
-  { text: "Hate this SuperCoffee brew", sentiment: "negative" },
+  // { text: "Hate this SuperCoffee brew", sentiment: "negative" },
   { text: "Trying SuperCoffee today", sentiment: "neutral" },
   // Add more for variety if needed
 ];
@@ -116,7 +116,7 @@ if (!isMainThread) {
 // Main Thread
 if (isMainThread) {
   // const WORKER_COUNT = require('os').cpus().length; // Dynamic worker count
-  const WORKER_COUNT = Math.max(4, os.cpus().length * 2);
+  const WORKER_COUNT = Math.max(4, os.cpus().length);
 
   const workers = new Set();
 
