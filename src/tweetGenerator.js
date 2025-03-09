@@ -20,17 +20,17 @@ const wordBanks = {
 };
 
 // Default sentiment distribution for fixed mode
-const DEFAULT_SENTIMENT_DISTRIBUTION = {
-  positive: 0.33,
-  negative: 0.33,
-  neutral: 0.34,
-};
+// const DEFAULT_SENTIMENT_DISTRIBUTION = {
+//   positive: 0.33,
+//   negative: 0.33,
+//   neutral: 0.34,
+// };
 
 // Function to generate a tweet pool
 const generateTweetPool = ({
   size = 1000,
   brand = "SuperCoffee",
-  sentimentDistribution = DEFAULT_SENTIMENT_DISTRIBUTION, // Used only in fixed mode
+  sentimentDistribution, // Used only in fixed mode
   mode = "fixed", // "fixed" or "volatile"
 } = {}) => {
   const pool = [];

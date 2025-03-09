@@ -99,7 +99,7 @@ if (!isMainThread) {
 
 // Main Thread
 if (isMainThread) {
-  const WORKER_COUNT = Math.max(4, os.cpus().length);
+  const WORKER_COUNT = Math.min(4, os.cpus().length);
   const workers = new Set();
   console.log("mode", MODE)
 
