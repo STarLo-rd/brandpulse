@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BrandPulse Dashboard - SuperCoffee</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .chart-container {
+      width: 45%;
+      display: inline-block;
+      vertical-align: top;
+      margin: 10px;
+    }
+
+    #tweetCounter {
+      font-size: 24px;
+      margin: 20px 0;
+    }
+
+    #sentimentScore {
+      font-size: 28px;
+      font-weight: bold;
+      margin: 20px 0;
+    }
+
+    #alertBox {
+      font-weight: bold;
+      margin: 20px 0;
+      display: none;
+      padding: 10px;
+      border-radius: 5px;
+    }
+
+    #alertBox.crisis {
+      background-color: #ffcccc;
+      color: #d00000;
+    }
+
+    #alertBox.opportunity {
+      background-color: #ccffcc;
+      color: #006400;
+    }
+
+    button, select {
+      padding: 10px 20px;
+      margin: 5px;
+      font-size: 16px;
+      cursor: pointer;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+    }
+
+    button:hover, select:hover {
+      background-color: #0056b3;
+    }
+
+    #loading {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 20px;
+      background-color: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 20px;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>BrandPulse: SuperCoffee Sentiment Dashboard</h1>
+  <div id="loading">Loading...</div>
+  <div class="chart-container">
+    <canvas id="sentimentChart"></canvas>
+  </div>
+  <div class="chart-container">
+    <canvas id="sentimentTrendChart"></canvas>
+  </div>
+  <div id="tweetCounter">Tweets processed: 0 (0 tweets/min)</div>
+  <div id="sentimentScore">Sentiment Score: 0%</div>
+  <div id="alertBox"></div>
+  <div>
+    <button onclick="startDemo()">Start Tweet Storm</button>
+    <button onclick="stopDemo()">Stop Tweet Storm</button>
+    <button onclick="triggerCrisis()">Trigger Crisis</button>
+    <button onclick="triggerOpportunity()">Trigger Opportunity</button>
+    <select id="timeRange" onchange="updateTimeRange()">
+      <option value="-5m">Last 5 Minutes</option>
+      <option value="-30m">Last 30 Minutes</option>
+      <option value="-1h" selected>Last 1 Hour</option>
+      <option value="-6h">Last 6 Hours</option>
+      <option value="-24h">Last 24 Hours</option>
+    </select>
+  </div>
+
+  <!-- Audio for alerts -->
+  <audio id="crisisSound" src="/crisis.mp3"></audio>
+  <audio id="opportunitySound" src="/opportunity.mp3"></audio>
+
+  <!-- Dependencies -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
+  <script>
+    // Pie Chart for real-time sentiment
+    const ctx = document.getElementById('sentimentChart').getContext('2d');
+    let currentTotalTweets = 0; // Store total tweets for tooltip calculation
+    const sentimentChart = new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels: ['Positive', 'Negative', 'Neutral'],
+        datasets: [{
+          data: [0, 0, 0],
+          backgroundColor: ['#36A2EB', '#FF6384', '#FFCE56'],
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: 'top' },
+          title: { display: true, text: 'Current Sentiment Distribution' }
+        },
+        tooltips: {  // Corrected to 'tooltips' for Chart.js 3.x
+          callbacks: {
+            label: function (context) {
+              const percentage = context.parsed;
+              const count = Math.round((percentage / 100) * currentTotalTweets);
+              return `${context.label}: ${percentage}% (${count} tweets)`;
+            }
+          }
+        }
+      }
+    });
+
+    // Line Chart for historical trends
+    const trendCtx = document.getElementById('sentimentTrendChart').getContext('2d');
+    const sentimentTrendChart = new Chart(trendCtx, {
+      type: 'line',
+      data: {
+        datasets: [
+          { label: 'Positive', data: [], borderColor: '#36A2EB', fill: false },
+          { label: 'Negative', data: [], borderColor: '#FF6384', fill: false },
+          { label: 'Neutral', data: [], borderColor: '#FFCE56', fill: false },
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: 'top' },
+          title: { display: true, text: 'Sentiment Trends' }
+        },
+        scales: {
+          x: { type: 'time', time: { unit: 'minute' } },
+          y: { beginAtZero: true, max: 100, title: { display: true, text: 'Percentage (%)' } }
+        }
+      }
+    });
+
+    // Store the last triggered alert timestamp and tweet rate data
+    let lastAlertTimestamp = 0;
+    const ALERT_COOLDOWN = 120000; // 2 minutes in milliseconds
+    let previousTotalTweets = 0;
+
+    // Socket.io connection
+    const socket = io();
+    socket.on('sentimentUpdate', (data) => {
+      // Hide loading indicator on first update
+      document.getElementById('loading').style.display = 'none';
+
+      // Update pie chart
+      currentTotalTweets = data.totalTweets; // Store total tweets for tooltips
+      sentimentChart.data.datasets[0].data = [
+        data.sentiment.positive,
+        data.sentiment.negative,
+        data.sentiment.neutral
+      ];
+      sentimentChart.update();
+
+      // Update line chart
+      sentimentTrendChart.data.datasets[0].data = data.historical.positive.map((y, i) => ({ x: data.historical.labels[i], y }));
+      sentimentTrendChart.data.datasets[1].data = data.historical.negative.map((y, i) => ({ x: data.historical.labels[i], y }));
+      sentimentTrendChart.data.datasets[2].data = data.historical.neutral.map((y, i) => ({ x: data.historical.labels[i], y }));
+      sentimentTrendChart.update();
+
+      // Update tweet counter with rate
+      const tweetRate = Math.round((data.totalTweets - previousTotalTweets) * 60); // Tweets per minute
+      document.getElementById('tweetCounter').textContent = `Tweets processed: ${data.totalTweets.toLocaleString()} (${tweetRate} tweets/min)`;
+      previousTotalTweets = data.totalTweets;
+
+      // Update sentiment score
+      const score = (data.sentiment.positive - data.sentiment.negative).toFixed(1);
+      const scoreElement = document.getElementById('sentimentScore');
+      scoreElement.textContent = `Sentiment Score: ${score > 0 ? '+' : ''}${score}%`;
+      scoreElement.style.color = score >= 0 ? '#36A2EB' : '#FF6384';
+
+      // Handle alerts with cooldown
+      const alertBox = document.getElementById('alertBox');
+      const now = Date.now();
+      if (data.alert && (now - lastAlertTimestamp > ALERT_COOLDOWN)) {
+        alertBox.textContent = data.alert;
+        alertBox.style.display = 'block';
+        lastAlertTimestamp = now;
+        if (data.alert.includes('Crisis')) {
+          alertBox.className = 'crisis';
+          document.getElementById('crisisSound').play();
+        } else if (data.alert.includes('Opportunity')) {
+          alertBox.className = 'opportunity';
+          document.getElementById('opportunitySound').play();
+        }
+      } else if (!data.alert) {
+        alertBox.style.display = 'none';
+        alertBox.className = '';
+      }
+    });
+
+    // Interactive controls (API calls to producer)
+    function startDemo() {
+      fetch('http://localhost:3001/start', { method: 'POST' })
+        .then(response => console.log('Started tweet storm'))
+        .catch(err => console.error('Error starting tweet storm:', err));
+    }
+
+    function stopDemo() {
+      fetch('http://localhost:3001/stop', { method: 'POST' })
+        .then(response => console.log('Stopped tweet storm'))
+        .catch(err => console.error('Error stopping tweet storm:', err));
+    }
+
+    function triggerCrisis() {
+      fetch('http://localhost:3001/trigger/crisis', { method: 'POST' })
+        .then(response => console.log('Triggered crisis'))
+        .catch(err => console.error('Error triggering crisis:', err));
+    }
+
+    function triggerOpportunity() {
+      fetch('http://localhost:3001/trigger/opportunity', { method: 'POST' })
+        .then(response => console.log('Triggered opportunity'))
+        .catch(err => console.error('Error triggering opportunity:', err));
+    }
+
+    function updateTimeRange() {
+      const timeRange = document.getElementById('timeRange').value;
+      socket.emit('setTimeRange', timeRange); // Send time range to server
+    }
+  </script>
+</body>
+
+</html>
