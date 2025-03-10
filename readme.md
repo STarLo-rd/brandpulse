@@ -172,9 +172,9 @@ MIT License—open-source and free. Check [LICENSE](LICENSE) for details.
 ## Learn More
 
 Full docs at [https://starlo-rd.github.io/docs/brandpulse/](https://starlo-rd.github.io/docs/brandpulse/). Key stops:
-- [Implementation](https://starlo-rd.github.io/docs/brandpulse/implementation.html)
-- [Demo](https://starlo-rd.github.io/docs/brandpulse/demo.html)
-- [Lessons Learned](https://starlo-rd.github.io/docs/brandpulse/implementation/lessons-learned.html)
+- [Implementation](https://starlo-rd.github.io/docs/brandpulse/implementation)
+- [Demo](https://starlo-rd.github.io/docs/brandpulse/demo)
+- [Lessons Learned](https://starlo-rd.github.io/docs/brandpulse/implementation/lessons-learned)
 
 ---
 
