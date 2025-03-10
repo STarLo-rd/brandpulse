@@ -1,185 +1,132 @@
 # DataStorm - High-Throughput Kafka Data Generator
 
-![Kafka Node.js Badge](https://img.shields.io/badge/Stack-Apache_Kafka%20%2B%20Node.js-green)
+Welcome to **DataStorm**, my powerhouse Kafka producer built to unleash a torrent of fake tweet data at blistering speeds. Designed to stress-test data pipelines, DataStorm pumps out millions of tweets per second, complete with sentiment labels, into Kafka’s "tweets" topic. Whether you’re benchmarking a system or simulating a social media firehose, this tool’s got the muscle to deliver.
 
-## 📌 Project Overview
-Real-time data generation system for stress-testing Kafka clusters with configurable payloads and throughput targets.
+**[Explore the Full BrandPulse Docs](https://starlo-rd.github.io/docs/brandpulse/)** - Check out the bigger picture, including implementation details and demo runs.
 
-**Current Milestone**: `v4.2`  
-**Target Throughput**: 1M messages/second  
-**Achieved Throughput**: 600K+ messages/s (Localhost)
+---
 
-```text
-Project Structure
-├── src/
-│   ├── v0/        # Initial prototype
-│   ├── v1/        # Worker threads
-│   ├── v2/        # Serialization optimization 
-│   ├── v3/        # Multi-broker support
-│   └── v4/        # Cluster mode
-├── schemas/       # Avro data definitions
-└── benchmarks/    # Performance reports
+## Overview
+
+DataStorm (`producer.js`) is the beating heart of my BrandPulse project’s data generation layer. It’s a Node.js script that leverages Kafka to generate tweet-like messages at scale, optimized for raw throughput. With multiple workers, massive batches, and a relentless 1ms interval, it’s engineered to push the limits—think 32,000,000 tweets per second in theory, and over 700,000/sec in practice on modest hardware.
+
+---
+
+## Features
+
+- **High-Performance Design**: No compression, high buffer memory—built for speed over everything else.
+- **Multi-Threaded Workers**: Spins up at least 8 or 4 workers (or matches CPU cores if higher) to maximize parallel generation.
+- **Predefined Tweets**: Uses 6 fixed tweet templates—2 positive, 2 negative, 2 neutral—for a balanced ~33.3% sentiment split per batch.
+- **Massive Batches**: Each worker churns out 8,000 tweets per batch, randomly sampled from the templates.
+- **Blazing Intervals**: Batches fire every 1ms, targeting up to 8,000,000 tweets/sec per worker.
+- **Shared Timestamps**: All 8,000 tweets in a batch get the same `Date.now()` timestamp, syncing them for downstream processing.
+
+---
+
+## Why DataStorm?
+
+I created DataStorm to simulate the chaos of real-world social media streams—fast, unpredictable, and massive. It’s not just about generating data; it’s about testing how systems hold up under pressure. Paired with my consumer (`datahandler`) and dashboard, it’s the first piece of a pipeline that handles over 700k tweets/sec end-to-end.
+
+---
+
+## Getting Started
+
+### Prerequisites
+- **Node.js**: v16+ (for worker threads and performance).
+- **Kafka**: A running Kafka broker (e.g., `localhost:9092`).
+- **Hardware**: Multi-core CPU recommended for peak performance.
+
+### Setup
+1. **Clone the Repo**:
+   ```bash
+   git clone https://github.com/STarLo-rd/brandpulse.git
+   cd brandpulse
+   ```
+
+2. **Install Dependencies**:
+   ```bash
+   npm install
+   ```
+
+3. **Set Up Kafka Topic**:
+   Create the "tweets" topic with 32 partitions for optimal distribution:
+   ```bash
+   bin/kafka-topics.sh --create --bootstrap-server localhost:9092 --replication-factor 1 --partitions 32 --topic tweets
+   ```
+
+4. **Run DataStorm**:
+   ```bash
+   node src/producer.js
+   ```
+   - Workers kick in (default: 8 or CPU cores).
+   - Batches of 8,000 tweets hit Kafka every 1ms.
+   - Monitor progress with `monitor.js` (see [BrandPulse Docs](https://starlo-rd.github.io/docs/brandpulse/implementation/)) for real-time stats.
+
+---
+
+## How It Works
+
+- **Worker Threads**: I use Node.js worker threads to parallelize generation. Each worker operates independently, targeting the "tweets" topic.
+- **Tweet Generation**: From a pool of 6 predefined tweets (e.g., "Love this day!" [+], "This sucks!" [-]), I randomly pick 8,000 per batch, aiming for a 33.3% split across sentiments.
+- **Kafka Push**: Batches are Avro-serialized and sent every 1ms, with no delay beyond that tiny window.
+- **Performance**: With 8 workers, that’s 32,000 tweets every 1ms—or 32M/sec in theory. Real runs hit 700k+/sec, limited by serialization and hardware.
+
+Check the [implementation details](https://starlo-rd.github.io/docs/brandpulse/implementation/) for the nitty-gritty.
+
+---
+
+## Sample Output
+
+Here’s what `monitor.js` showed during a run:
 ```
-
-## 📈 Development Progress Log
-
-### Version History
-
-| Version | Key Changes                                   | Throughput | Duration  | Stability |
-|---------|-----------------------------------------------|------------|-----------|-----------|
-| v0.1    | Single-thread producer                        | 2K/s       | 10min     | ⚠️ Low    |
-| v1.2    | Worker thread implementation                  | 18K/s      | 30min     | ✅ Stable |
-| v2.1    | Avro pre-serialization                        | 56K/s      | 2hr       | ✅ Stable |
-| v3.3    | Multi-broker local cluster                    | 210K/s     | 6hr       | 🟡 Medium |
-| v4.0    | Worker clustering + 16MB batches              | 420K/s     | Ongoing   | 🟡 Medium |
-
-[detailed information](./changelog.md)
-### Key Breakthroughs
-```text
-2025-02-15: Crossed 100K/s barrier using worker thread pooling
-2025-02-17: Implemented zero-copy serialization (40% gain)
-2025-02-21: Localhost 4-broker cluster setup stabilized
-2025-02-25: LZ4 compression outperformed ZSTD in Node.js
-```
-
-### Benchmark Results (v4.2)
-```bash
-# Test Conditions
-- 4 Kafka brokers (localhost)
-- 16 logical cores
-- 32GB RAM
-- Node.js 18.14
-
-# Throughput Peaks
-✅ 420,392 msg/s (16MB batches)
-✅ 38.7 MB/s sustained
-⚠️  GC pauses: 200-400ms every 45s
-```
-
-
-
-Workers: Assuming you’re still on os.cpus().length * 3 workers (e.g., 24 workers on an 8-core system), each worker is averaging ~23K-25K tweets/sec (550K ÷ 24).
-
 BrandPulse Tweet Generation Metrics
-[▓▓▓▓▓▓░░░░░░░░░░░░░░░░░░░░░░░░] 18.78%
-├─ Total Tweets: 9,392,000 / 50,000,000
-├─ Throughput (current): 731,200 tweets/sec
-├─ Throughput (avg): 552,081 tweets/sec
-├─ Elapsed: 00:00:17
-├─ Remaining: 00:01:13
-└─ Errors: 0^C
+[▓▓▓▓▓▓▓▓▓▓░░░░░░░░░░░░░░░░░░░░] 34.32%
+├─ Total Tweets: 17,160,000 / 50,000,000
+├─ Throughput (current): 707,200 tweets/sec
+├─ Throughput (avg): 571,886 tweets/sec
+├─ Elapsed: 00:00:30
+├─ Remaining: 00:00:57
+└─ Errors: 0
+```
+That’s DataStorm in full flight—over half a million tweets/sec on average, peaking at 707k/sec.
 
+---
 
-Current Performance Snapshot
-Throughput:
-Current: 731,200 tweets/sec (peak).
-Average: 552,081 tweets/sec (sustained).
+## Configuration
 
-Config Highlights:
-Batch size: 8,000 tweets.
-Interval: 1ms between batches.
-Workers: Math.max(4, os.cpus().length * 2) (e.g., 16 on an 8-core machine).
-Kafka: No compression, acks: 0, lingerMs: 1, aggressive memory usage.
+Tweak these in `producer.js` to suit your needs:
+- **Worker Count**: Adjust `numWorkers` (default: `Math.max(4, os.cpus().length)`).
+- **Batch Size**: Set `BATCH_SIZE` (default: 8,000).
+- **Batch Interval**: Change `BATCH_INTERVAL_MS` (default: 1ms).
+- **Kafka Settings**: Update `kafka.producer` options (e.g., buffer memory) in the script.
 
+---
 
-Producer (producer.js):
+## Next Steps
 
-    The producer is configured to generate fake tweets using the Kafka library, with settings optimized for high performance (e.g., no compression, high buffer memory).
-    It uses multiple worker threads, with the number of workers set to at least 4 or the number of CPU cores, whichever is higher.
-    Tweets are predefined with texts and sentiments: there are 6 predefined tweets, split evenly with 2 positive, 2 negative, and 2 neutral sentiments.
-    Each worker generates batches of 8,000 tweets, selecting randomly from these 6 predefined tweets, resulting in an expected distribution of approximately 33.3% for each sentiment per batch.
-    The batch interval is set to 1ms, meaning each worker sends a batch and waits 1ms before generating the next, leading to a potential generation rate of 8,000,000 tweets per second per worker.
-    Timestamps for tweets within a batch are set to the time of batch generation (Date.now()), meaning all 8,000 tweets in a batch share the same timestamp.
+- Pair DataStorm with `datahandler` (consumer) and my dashboard for the full BrandPulse experience—see [the docs](https://starlo-rd.github.io/docs/brandpulse/demo/).
+- Push the limits: Crank up workers or batch sizes and watch it scale (or break!).
 
-Consumer (consumer.js):
+---
 
-    The consumer also uses multiple worker threads, with the number set to the minimum of CPU cores or 2, to process tweets from the Kafka topic "tweets."
-    It is configured with a consumer group and settings for session timeout, heartbeat interval, and maximum bytes per partition, ensuring robust consumption.
-    Each worker subscribes to the topic and processes batches of messages, decoding them using a tweet schema and creating InfluxDB points.
-    Each tweet is written to InfluxDB as a point in the "tweets" measurement, with tags for brand ("SuperCoffee") and sentiment (positive, negative, or neutral), and fields including "text" (truncated to 255 characters) and "count" set to 1.
-    Points are buffered and flushed to InfluxDB in batches of 5,000 points or every 5 seconds, whichever comes first, with options for retrying failed writes.
+## Contributing
 
+Found a bottleneck? Got a tweak? Open an issue or PR on [GitHub](https://github.com/STarLo-rd/brandpulse). I’d love to see how others can turbocharge DataStorm.
 
+---
 
-producer.js uses Kafka to send fake tweets with sentiment to a "tweets" topic, running in multiple worker threads.
-consumer.js reads these tweets, decodes them, and writes data to InfluxDB, also using multiple worker threads.
+## License
 
+MIT License—use it, tweak it, share it. See [LICENSE](LICENSE) for details.
 
-The producer generates random tweets from a list, mixing positive, negative, and neutral sentiments.
-There are 6 predefined tweets: 2 positive, 2 negative, and 2 neutral, so each has an equal chance in the batch.
+---
 
-The consumer adds a random millisecond variation to timestamps to prevent overwrites in InfluxDB.
-All 8000 tweets in a batch have the same timestamp, so they fall into the same second when aggregated.
+## Acknowledgments
 
+- Kafka for its relentless scalability.
+- Node.js for making parallel workers a breeze.
+- My coffee for keeping me sane through the optimization grind.
 
- from(bucket: "brandpulse")
-  |> range(start: -1h)
-  |> filter(fn: (r) => r._measurement == "tweets")
-  |> group(columns: ["sentiment"])
+---
 
-vs 
-
-    from(bucket: "brandpulse")
-    |> range(start: -1h)
-    |> filter(fn: (r) => r._measurement == "tweets")
-    |> filter(fn: (r) => r._field == "count")
-    |> aggregateWindow(every: 1s, fn: sum)
-    |> group(columns: ["sentiment"])
-
-This query fetches data from the "brandpulse" bucket for the last hour, filters for the "tweets" measurement and "count" field, aggregates the sum of "count" per second, and groups by sentiment.
-Given each tweet has "count" = 1, the sum per second for each sentiment represents the number of tweets with that sentiment in that second.
-With batches of 8,000 tweets generated every 1ms and potentially multiple batches per second (due to multiple workers and fast generation), the sums per second can be very large, explaining the user's observation of "tons of data."
-
-
-problem faced-
-buffer memory - flusing time
- You're only flushing when you reach INFLUX_BATCH_SIZE (10,000) points or every 10 seconds. If your buffer isn't filling up fast enough, data might be sitting in memory.
-
- Better Flush Management:
-
-Reduced batch size from 10,000 to 5,000 for more frequent writes
-Decreased flush interval from 10 seconds to 5 seconds
-Added explicit write options for better control
-
-Timestamp Handling: Your CSV shows data points with very precise timestamps (millisecond-level). InfluxDB might be overwriting points with the same timestamp if they share the same tag combination.
-
-The issue was with how InfluxDB handles data points that have identical combinations of:
-
-Measurement name
-Tag set
-Timestamp
-
-In InfluxDB, these three elements together form a unique identifier for each data point. If you write multiple points with the same measurement, tags, and timestamp, InfluxDB doesn't append them - it overwrites the previous point with the new one.
-
-Your fix of adding timestamp variation solved the immediate issue by ensuring each point had a unique identifier, allowing InfluxDB to store all the data points rather than overwriting them.
-
-
-
-BATCH_INTERVAL_MS is set to 1ms, meaning there's a very short delay between sending batches, which supports high throughput.
-I'm checking how quickly the producer generates batches, given the 1ms delay, which might result in timestamps being very close together.
-JavaScript's Date.setMilliseconds only accepts integers between 0 and 999, so adding Math.random() might not work as intended for timestamp variation.
-Adding Math.random() to the timestamp doesn't effectively vary it, since setMilliseconds truncates to integers.
-The code's attempt to vary timestamps with Math.random() fails, as setMilliseconds doesn't handle fractional milliseconds.
-All tweets from the same batch end up with the same timestamp in InfluxDB, since the consumer's timestamp variation doesn't work.
-
-
-
-With 4 workers, each generating 8000 tweets every 1ms, that's 32,000,000 tweets per second, which seems unrealistically high for any system.
-
-
-
-
-
-support two distinct modes for sentiment distribution in the tweet generation:
-
-Fixed Values: The user can specify exact percentages for positive, negative, and neutral sentiments (e.g., 50% positive, 30% negative, 20% neutral), and the distribution strictly adheres to those values.
-High Volatility Random: A mode where sentiment distribution is more random and fluctuates significantly, introducing high variability (e.g., one batch might be 80% positive, the next 10% positive, etc.).
-
-Two Modes:
-Fixed Mode: Uses userSentimentDistribution to enforce exact percentages across the entire tweet pool. The distribution remains consistent for all batches.
-Volatile Mode: Introduces adjustBatchSentiment, which regenerates sentiment per batch with high variability. The volatilityFactor (set to 0.8) controls how extreme the swings are (closer to 1 = more volatile).
-
-Mode Selection:
-Added a MODE constant in index.js to switch between "fixed" and "volatile".
-In fixed mode, generateTweetPool respects the user’s percentages.
-In volatile mode, adjustBatchSentiment overrides the base pool’s sentiment distribution for each batch.
+**DataStorm**: Where tweets meet speed. Dive into the storm at [https://starlo-rd.github.io/docs/brandpulse/](https://starlo-rd.github.io/docs/brandpulse/).

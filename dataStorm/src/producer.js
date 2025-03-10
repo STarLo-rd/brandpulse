@@ -18,6 +18,7 @@ const BATCH_SIZE = parseInt(process.env.BATCH_SIZE || 8000, 10);
 const BATCH_INTERVAL_MS = parseInt(process.env.BATCH_INTERVAL_MS || 1, 10);
 const VOLATILITY_FACTOR = parseFloat(process.env.VOLATILITY_FACTOR || 0.8);
 const KAFKA_BROKERS = (process.env.KAFKA_BROKERS || "localhost:9092").split(",");
+const KAFKA_TOPIC = process.env.KAFKA_TOPIC || "tweets";
 
 // Kafka configuration
 const kafkaConfig = {
@@ -79,7 +80,7 @@ if (!isMainThread) {
         const batch = generateBatch();
         const startTime = Date.now();
         await producer.send({
-          topic: "tweets",
+          topic: KAFKA_TOPIC,
           messages: batch,
         });
         const duration = Date.now() - startTime;
