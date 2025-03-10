@@ -3,12 +3,13 @@ const { Worker, isMainThread, parentPort, threadId } = require('worker_threads')
 const tweetSchema = require('./schema/tweetSchema'); // Ensure correct path
 const os = require('os');
 const { InfluxDB, Point } = require('@influxdata/influxdb-client');
+require('dotenv').config();
 
 // InfluxDB configuration
-const INFLUX_URL = 'http://localhost:8086';
-const INFLUX_TOKEN = 'OS0t8w6jBnwwL-HIWgU1lWniUARhRc85gLtFqTbhZiEqVNPvludyzs1vswBDAsegbfWk1pJGpk3dY1LKK_2zDQ==';
-const INFLUX_ORG = '6914ea40681fbe1d';
-const INFLUX_BUCKET = 'brandpulse';
+const INFLUX_URL = process.env.INFLUX_URL;
+const INFLUX_TOKEN = process.env.INFLUX_TOKEN;
+const INFLUX_ORG = process.env.INFLUX_ORG;
+const INFLUX_BUCKET = process.env.INFLUX_BUCKET;
 
 // Kafka configuration
 const kafkaConfig = {
@@ -33,8 +34,8 @@ if (!isMainThread) {
     groupId: CONSUMER_GROUP,
     sessionTimeout: 30000,
     heartbeatInterval: 10000, // Less frequent heartbeats
-    maxBytesPerPartition: 3 * 1024 * 1024, // 2MB per partition
-    maxBytes: 20 * 1024 * 1024, // 10MB total fetch size
+    maxBytesPerPartition: 3 * 1024 * 1024, // 3MB per partition
+    maxBytes: 20 * 1024 * 1024, // 20MB total fetch size
     maxPollInterval: 300000,
     fetchMaxWaitMs: 100, // Faster fetches
   });

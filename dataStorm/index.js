@@ -1,1 +1,1 @@
-require("./src/producer");
+require("./src/producer")
