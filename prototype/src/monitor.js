@@ -37,7 +37,7 @@ const formatNumber = (num) => {
 };
 
 // Start producer process
-const producer = spawn('node', ['src/producer.js'], {
+const producer = spawn('node', ['src/v3/producer-w.js'], {
   stdio: ['inherit', 'pipe', 'pipe']
 });
 
@@ -102,11 +102,11 @@ const displayMetrics = () => {
 
   // Build status lines
   const statusLines = [
-    `${chalk.red('BrandPulse Tweet Generation Metrics')}`, // Updated title
+    `${chalk.red('DataStorm Producer Metrics')}`,
     `${progressBar(percentComplete)} ${percentComplete.toFixed(2)}%`,
-    `├─ Total Tweets: ${chalk.cyan(formatNumber(metrics.totalMessages))} / ${formatNumber(TARGET_MESSAGES)}`, // "Tweets" not "Total"
-    `├─ Throughput (current): ${chalk.green(formatNumber(rollingThroughput))} tweets/sec`, // "tweets/sec"
-    `├─ Throughput (avg): ${chalk.cyan(formatNumber(avgThroughput))} tweets/sec`,
+    `├─ Total: ${chalk.cyan(formatNumber(metrics.totalMessages))} / ${formatNumber(TARGET_MESSAGES)}`,
+    `├─ Throughput (current): ${chalk.green(formatNumber(rollingThroughput))} msg/sec`,
+    `├─ Throughput (avg): ${chalk.cyan(formatNumber(avgThroughput))} msg/sec`,
     `├─ Elapsed: ${formatTime(elapsed)}`,
     `├─ Remaining: ${formatTime(eta)}`,
     `└─ Errors: ${chalk[metrics.errorCount > 0 ? 'red' : 'green'](metrics.errorCount)}`,
