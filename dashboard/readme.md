@@ -220,3 +220,26 @@ Key links:
 ## Final Note
 
 The BrandPulse Dashboard is my victory lap—a real-time lens on a pipeline I pushed to 700k+ tweets/sec. It’s simple, it’s fast, and it tells the story of every tweet I’ve wrangled. Fire it up, watch the lines dance, and let me know how it hits you!
+
+
+
+```sh
+docker build -t brandpulse-dashboard:latest .
+[+] Building 4.2s (10/10) FINISHED                                                                                                                                   docker:default
+ => [internal] load build definition from Dockerfile                                                                                                                           0.0s
+ => => transferring dockerfile: 260B                                                                                                                                           0.0s
+ => [internal] load metadata for docker.io/library/node:18-alpine                                                                                                              1.5s
+ => [internal] load .dockerignore                                                                                                                                              0.0s
+ => => transferring context: 2B                                                                                                                                                0.0s
+ => [1/5] FROM docker.io/library/node:18-alpine@sha256:e0340f26173b41066d68e3fe9bfbdb6571ab3cad0a4272919a52e36f4ae56925                                                        0.0s
+ => [internal] load build context                                                                                                                                              0.0s
+ => => transferring context: 271.11kB                                                                                                                                          0.0s
+ => CACHED [2/5] WORKDIR /app                                                                                                                                                  0.0s
+ => [3/5] COPY package*.json ./                                                                                                                                                0.0s
+ => [4/5] RUN npm install                                                                                                                                                      2.4s
+ => [5/5] COPY . .                                                                                                                                                             0.0s
+ => exporting to image                                                                                                                                                         0.1s
+ => => exporting layers                                                                                                                                                        0.1s
+ => => writing image sha256:45fac0ac454fff16d8b52fa8813bd4b47bc10d867743a00482d272bb233352fe                                                                                   0.0s
+ => => naming to docker.io/library/brandpulse-dashboard:latest 
+ 

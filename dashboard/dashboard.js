@@ -5,11 +5,16 @@ const { InfluxDB } = require('@influxdata/influxdb-client');
 const path = require('path');
 require('dotenv').config(); // Load .env file for configuration
 
-// InfluxDB configuration (from .env or defaults)
-const token = process.env.INFLUX_TOKEN
+// Environment configuration
+const HOST_NETWORK_MODE = process.env.HOST_NETWORK_MODE === 'true';
+const INFLUX_HOST = HOST_NETWORK_MODE ? 'localhost' : 'influxdb';
+const INFLUX_PORT = process.env.INFLUX_PORT || '8086';
+
+// InfluxDB configuration
+const token = process.env.INFLUX_TOKEN;
 const org = process.env.INFLUX_ORG || '6914ea40681fbe1d';
 const bucket = process.env.INFLUX_BUCKET || 'brandpulse';
-const url = process.env.INFLUX_URL || 'http://localhost:8086';
+const url = process.env.INFLUX_URL || `http://${INFLUX_HOST}:${INFLUX_PORT}`;
 const client = new InfluxDB({ url, token });
 const queryApi = client.getQueryApi(org);
 

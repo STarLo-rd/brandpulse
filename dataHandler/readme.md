@@ -215,3 +215,25 @@ Dive into:
 ## Final Note
 
 The Data Handler is my pride and joy in BrandPulse—proof I can tame a data torrent and make it sing. It’s built to scale, tuned to perform, and ready for you to explore. Let me know how it goes!
+
+
+```sh
+ docker build -t brandpulse-consumer:latest .
+[+] Building 8.3s (10/10) FINISHED                                                                                                                                   docker:default
+ => [internal] load build definition from Dockerfile                                                                                                                           0.0s
+ => => transferring dockerfile: 562B                                                                                                                                           0.0s
+ => [internal] load metadata for docker.io/library/node:18-alpine                                                                                                              1.8s
+ => [internal] load .dockerignore                                                                                                                                              0.0s
+ => => transferring context: 2B                                                                                                                                                0.0s
+ => [1/5] FROM docker.io/library/node:18-alpine@sha256:e0340f26173b41066d68e3fe9bfbdb6571ab3cad0a4272919a52e36f4ae56925                                                        0.0s
+ => [internal] load build context                                                                                                                                              0.4s
+ => => transferring context: 25.07MB                                                                                                                                           0.3s
+ => CACHED [2/5] WORKDIR /app                                                                                                                                                  0.0s
+ => [3/5] COPY package*.json ./                                                                                                                                                0.1s
+ => [4/5] RUN npm ci --only=production                                                                                                                                         5.4s
+ => [5/5] COPY . .                                                                                                                                                             0.3s
+ => exporting to image                                                                                                                                                         0.2s
+ => => exporting layers                                                                                                                                                        0.2s
+ => => writing image sha256:3bb84ffae378e8c8807cd25b57d91bfa238e68118d49de2dc4101b3660856242                                                                                   0.0s
+ => => naming to docker.io/library/brandpulse-consumer:latest            
+ ```

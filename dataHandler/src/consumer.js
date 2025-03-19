@@ -5,8 +5,17 @@ const os = require('os');
 const { InfluxDB, Point } = require('@influxdata/influxdb-client');
 require('dotenv').config();
 
+// Environment configuration
+const HOST_NETWORK_MODE = process.env.HOST_NETWORK_MODE === 'true';
+const KAFKA_BROKERS = process.env.KAFKA_BROKERS ? 
+  process.env.KAFKA_BROKERS.split(',') : 
+  [HOST_NETWORK_MODE ? 'localhost:9092' : 'kafka:9092'];
+
+const INFLUX_HOST = HOST_NETWORK_MODE ? 'localhost' : 'influxdb';
+const INFLUX_PORT = process.env.INFLUX_PORT || '8086';
+const INFLUX_URL = process.env.INFLUX_URL || `http://${INFLUX_HOST}:${INFLUX_PORT}`;
+
 // InfluxDB configuration
-const INFLUX_URL = process.env.INFLUX_URL;
 const INFLUX_TOKEN = process.env.INFLUX_TOKEN;
 const INFLUX_ORG = process.env.INFLUX_ORG;
 const INFLUX_BUCKET = process.env.INFLUX_BUCKET;
@@ -14,7 +23,7 @@ const INFLUX_BUCKET = process.env.INFLUX_BUCKET;
 // Kafka configuration
 const kafkaConfig = {
   clientId: `brandpulse-consumer-${process.pid}-${threadId}`,
-  brokers: ['localhost:9092'],
+  brokers: KAFKA_BROKERS,
   retry: {
     retries: 10,
     initialRetryTime: 50,
@@ -122,8 +131,9 @@ if (!isMainThread) {
   const runConsumer = async () => {
     try {
       await consumer.connect();
+      console.log("Consumer connected to kafka:9092");
       await consumer.subscribe({ topic: TOPIC, fromBeginning: false });
-
+      console.log("Subscribed to tweets");
       await consumer.run({
         autoCommit: true,
         autoCommitInterval: 10000, // Less frequent commits

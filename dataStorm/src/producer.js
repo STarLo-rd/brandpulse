@@ -17,7 +17,10 @@ const SENTIMENT_DISTRIBUTION = {
 const BATCH_SIZE = parseInt(process.env.BATCH_SIZE || 8000, 10);
 const BATCH_INTERVAL_MS = parseInt(process.env.BATCH_INTERVAL_MS || 1, 10);
 const VOLATILITY_FACTOR = parseFloat(process.env.VOLATILITY_FACTOR || 0.8);
-const KAFKA_BROKERS = (process.env.KAFKA_BROKERS || "localhost:9092").split(",");
+
+// Default to container mode, but allow override via HOST_NETWORK_MODE
+const DEFAULT_BROKER = process.env.HOST_NETWORK_MODE === 'true' ? "localhost:9092" : "kafka:9092";
+const KAFKA_BROKERS = (process.env.KAFKA_BROKERS || DEFAULT_BROKER).split(",");
 const KAFKA_TOPIC = process.env.KAFKA_TOPIC || "tweets";
 
 // Kafka configuration
