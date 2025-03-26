@@ -318,3 +318,53 @@ docker logs -f brandpulse-producer-1
 [W3] 8000 in 187ms
 [W4] 8000 in 214ms
 [W1] 8000 in 203ms
+```
+
+```sh
+docker images
+REPOSITORY                    TAG       IMAGE ID       CREATED        SIZE
+brandpulse-consumer           latest    f2c0caacc4ea   13 hours ago   182MB
+brandpulse-dashboard          latest    c73621de1819   13 hours ago   144MB
+<none>                        <none>    45fac0ac454f   14 hours ago   144MB
+<none>                        <none>    3bb84ffae378   14 hours ago   182MB
+brandpulse-producer           latest    4492741f2dcd   14 hours ago   135MB
+brandpulse-datastorm          latest    5d871e1343ab   2 days ago     135MB
+confluentinc/cp-kafka         latest    a2716a120846   4 weeks ago    1.1GB
+confluentinc/cp-zookeeper     latest    725e1614cf4d   4 weeks ago    1.1GB
+brandpulse-influxdb           latest    0e256deeeac3   2 months ago   406MB
+gcr.io/k8s-minikube/kicbase   v0.0.46   e72c4cbe9b29   2 months ago   1.31GB
+```
+
+
+
+```sh
+minikube start --cpus=4 --memory=8192
+😄  minikube v1.35.0 on Ubuntu 22.04
+✨  Using the docker driver based on existing profile
+❗  You cannot change the memory size for an existing minikube cluster. Please first delete the cluster.
+❗  You cannot change the CPUs for an existing minikube cluster. Please first delete the cluster.
+👍  Starting "minikube" primary control-plane node in "minikube" cluster
+🚜  Pulling base image v0.0.46 ...
+🔄  Restarting existing docker container for "minikube" ...
+🐳  Preparing Kubernetes v1.32.0 on Docker 27.4.1 ...
+🔎  Verifying Kubernetes components...
+    ▪ Using image gcr.io/k8s-minikube/storage-provisioner:v5
+🌟  Enabled addons: storage-provisioner, default-storageclass
+🏄  Done! kubectl is now configured to use "minikube" cluster and "default" namespace by default
+```
+
+
+```sh
+kubectl apply -f .
+configmap/brandpulse-config created
+deployment.apps/consumer created
+deployment.apps/dashboard created
+service/dashboard created
+deployment.apps/influxdb created
+service/influxdb created
+deployment.apps/kafka created
+service/kafka created
+deployment.apps/producer created
+deployment.apps/zookeeper created
+service/zookeeper created
+```

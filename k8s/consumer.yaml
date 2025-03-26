@@ -1,0 +1,31 @@
+# consumer.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: consumer
+  labels:
+    app: consumer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: consumer
+  template:
+    metadata:
+      labels:
+        app: consumer
+    spec:
+      containers:
+      - name: consumer
+        image: brandpulse-consumer:latest
+        imagePullPolicy: Never  # Use local image only
+        resources:
+          requests:
+            cpu: "1.5"
+            memory: "512Mi"
+          limits:
+            cpu: "1.5"
+            memory: "512Mi"
+        envFrom:
+        - configMapRef:
+            name: brandpulse-config
